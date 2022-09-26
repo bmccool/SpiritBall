@@ -20,7 +20,7 @@ With 100 days until Christmas 2022, this project is set as a design challenge to
 - Based on [[ws812b]] LEDs.  
 - Designed around multiple interlocking "leaves" and central management core.
 	- See pic
-		- ![[Pasted image 20220916093054.png]]
+		- ![img](images/Pasted%20image%2020220916093054.png)
 
 
 ## Design
@@ -58,6 +58,8 @@ With 100 days until Christmas 2022, this project is set as a design challenge to
 ### Software
 ## Work
 - [[2022-09-26]] Created [SpiritBall Repo]() with first pass of schematic and PCB layout.  Tagging as [SpiritBall v0.1.0]()  This is intended as a minimum viable product with only a single plane of LEDs.  I still need to create board gerber files and run them through [[JLCPCB]] online tools to check for compatibility, as well as generate a BOM and place the order.
+	- ![img](images/Pasted%20image%2020220926081628.png)
+	- ![img](images/Pasted%20image%2020220926081646.png)
 # ./[[SpiritBall]]
 ---
 
