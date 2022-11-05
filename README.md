@@ -62,6 +62,25 @@ With 100 days until Christmas 2022, this project is set as a design challenge to
 - [[2022-09-26]] Created [SpiritBall Repo]() with first pass of schematic and PCB layout.  Tagging as [SpiritBall v0.1.0]()  This is intended as a minimum viable product with only a single plane of LEDs.  I still need to create board gerber files and run them through [[JLCPCB]] online tools to check for compatibility, as well as generate a BOM and place the order.
 	- ![img](images/Pasted%20image%2020220926081628.png)
 	- ![img](images/Pasted%20image%2020220926081646.png)
+- [[2022-11-01]] - Success!  The first batch of 5 assembled boards came back last week (I had done some minor tocuch up work, swapped some parts for in-stock, etc).  I also used a [[ESP-Prog]] flash board to get things started, though I think I could eventually use the USB cable or even [[OTA]] updates.  **TODO** add pictures and video.  Re: software, I've been turned onto using [[RMT]] for controlling the LEDs by [[@Chris Lomont]], and it was a cinch to get up and running a simple rainbow chase.  Now the fun part - Making it look more appealing and less like rainbow unicorn vomit :) 
+	- PS: Had a brief moment of panic - Playing with some LED patterns and decided to pull back the brightness so it didn't hurt my eyes.  I lowered the SATURATION when I meant to lower the VALUE in the HVS color representation.  This of course just made all the LEDs white, and full brightness, which spiked current draw up over 700mA.  Oops.  But the program runs at boot, and is powered through the PROG interface meant there wasn't enough power available to flash through UART.  Turns out the USB port on the [[SpiritBall]] works fine to power the board with some extra power.  Plugged in both USB and PROG interface (which saw maybe 10mA draw) and recovered the board.  I'm pretty happy with how this first revision is performing.
+	- Also, had to shake off some rust to get example code up and running.  Here's what I did:
+		```
+		cd C:\projects\brendon\ESP32S3-Project-Template
+		xcopy /e /i C:\Espressif\frameworks\esp-idf-v5.0\examples\get-started\hello_world ./
+		idf.py set-target esp32s3
+		(remove build dir if it complains)
+		idf.py -p COM5 flash monitor
+		```
+- [[2022-11-05]] - I've been experimenting with different patterns and have got to the point I have things worth saving.  So I'm spending some time to update github.  Also switched over to C++ for most things, but I kept the [[RMT]] encoder in C because I didn't feel like re-writing it and it works well enough as is... Maybe that's a task for a later date.  Things I still need to do:
+	- [ ] Settle on a handful of set patterns (including `OFF`)
+	- [ ] Cycle through set patterns with onboard buttons
+	- [ ] Add some sort of software over-current protection
+	- [ ] Update via USB-C cable
+	- [ ] Update via OTA (stretch)
+	- [ ] Control patterns via BT or WiFi (stretch)
+
+/Work
 # ./[[SpiritBall]]
 ---
 
