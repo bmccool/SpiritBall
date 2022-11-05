@@ -1,0 +1,13 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}",
+                "${workspaceFolder}\\main\\**",
+                "C:\\Espressif\\frameworks\\esp-idf-v5.0\\components\\**"
+            ]
+        }
+    ],
+    "version": 4
+}            
