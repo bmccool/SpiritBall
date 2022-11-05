@@ -7,6 +7,8 @@ cssclass:
 
 # TITLE: [[SpiritBall]]
 ---
+## Demo
+![](images/demo.gif)
 ## Abstract
 With 100 days until Christmas 2022, this project is set as a design challenge to create a Christmas decoration to be handed out as gifts, and as an excuse to learn and play with new tech toys and concepts.  This Readme is a copy of my notebook for this project.
 ## MOC
