@@ -5,6 +5,16 @@
 #include <string.h> /* memset */
 #include <iostream> // cin, cout
 #include "driver/rmt_tx.h" // TODO/ I'd rather this file not know about the driver implementation...
+#include <set>
+
+// COLOR DEFINES
+#define BLUE {0, 100, 0}         // 360/0 Blue
+#define CYAN {60, 100, 0}        // 60 Cyan
+#define GREEN {120, 100, 0}      // 120
+#define YELLOW {180, 100, 0}     // 180 yellowgreen
+#define RED {240, 100, 0}        // 240 red
+#define PURPLE {300, 100, 0}     // 300 Purple
+
 
 /**
  * @brief Simple helper function, converting HSV color space to RGB color space
@@ -58,8 +68,24 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, uint32_t
     }
 }
 
+struct ColorHSV
+{
+    uint16_t hue;
+    uint16_t saturation;
+    uint16_t value;
+};
+
+struct ColorRGB
+{
+    uint16_t red;
+    uint16_t green;
+    uint16_t blue;
+};
+
+
 class McCoolLED {
     private:
+        
     public:
         uint16_t hue;
         uint16_t saturation;
@@ -76,6 +102,17 @@ class McCoolLED {
 
         uint16_t position;
         // xyz?
+        std::vector<ColorHSV> christmas = {RED, GREEN};
+        // 360/0 Blue
+        // 60 Cyan
+        // 120
+        // 180 yellowgreen
+        // 240 red
+        // 300 Purple
+        
+
+
+
 
         McCoolLED(uint16_t hue, uint16_t saturation, uint16_t value, uint16_t ttl_ticks, int16_t hue_trajectory, uint16_t position): hue(hue), saturation(saturation), value(value), ttl_ticks(ttl_ticks), hue_trajectory(hue_trajectory), position(position){ is_alive = true; tl_ticks = 0;}
 
@@ -190,6 +227,16 @@ class McCoolLEDClump {
             }
         }
 
+        bool position_is_empty(unsigned int position){
+            // If there is already an LED at this position, return False.  Else True
+            for(int i = 0; i < leds.size(); i++){
+                if (leds[i].position == position){
+                    return false;
+                }
+            }
+            return true;
+        }
+
         void glow_random_2(int concurrent_leds, int max_value, int max_ttl)
         {
             // TODO speed is how long we wait after sending LED data before sending it again.
@@ -199,13 +246,18 @@ class McCoolLEDClump {
             //    leds.emplace_back();
             //}
             uint16_t position;
+            ColorHSV color;
             if (leds.size() == 0){
                 position = rand() % 35;
                 leds.emplace_back(0, 100, 0, 10, 0, position);
             }else if (leds.size() < concurrent_leds){
                 if (rand() % 2 == 1){
                     position = rand() % 35;
-                    leds.emplace_back(rand() % 360, 0, 0, 10, 0, position); // TODO check if it exists first
+                    if (position_is_empty(position)){
+                        color = leds[0].christmas[rand() % leds[0].christmas.size()];
+                        leds.emplace_back(color.hue, color.saturation, 0, 10, 0, position); // TODO check if it exists first
+                    }
+                    
                 }
             }
 
