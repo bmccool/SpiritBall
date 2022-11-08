@@ -44,117 +44,6 @@ static int loop_state = 0;
 
 static uint8_t led_strip_pixels[EXAMPLE_LED_NUMBERS * 3];
 
-void chase(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rmt_transmit_config_t *config){
-    uint32_t red = 0;
-    uint32_t green = 0;
-    uint32_t blue = 0;
-    uint16_t hue = 0;
-    uint16_t start_rgb = 0;
-    while (1) {
-        for (int i = 0; i < 3; i++) {
-            for (int j = i; j < EXAMPLE_LED_NUMBERS; j += 3) {
-                // Build RGB pixels
-                hue = j * 360 / EXAMPLE_LED_NUMBERS + start_rgb;
-                led_strip_hsv2rgb(hue, 100, 100, &red, &green, &blue);
-                led_strip_pixels[j * 3 + 0] = green;
-                led_strip_pixels[j * 3 + 1] = blue;
-                led_strip_pixels[j * 3 + 2] = red;
-            }
-            // Flush RGB values to LEDs
-            ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, sizeof(led_strip_pixels), config));
-            vTaskDelay(pdMS_TO_TICKS(EXAMPLE_CHASE_SPEED_MS));
-            memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
-            ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, sizeof(led_strip_pixels), config));
-            vTaskDelay(pdMS_TO_TICKS(EXAMPLE_CHASE_SPEED_MS));
-        }
-        start_rgb += 60;
-    }
-}
-
-void line(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rmt_transmit_config_t *config){
-    uint32_t red = 0;
-    uint32_t green = 0;
-    uint32_t blue = 0;
-    uint16_t hue = 0;
-    uint16_t start_rgb = 0;
-    uint16_t speed_ms = 7;
-    while (1) {
-        for (int j = 0; j < EXAMPLE_LED_NUMBERS; j += 1) {
-            // Build RGB pixels
-            hue = j * 360 / EXAMPLE_LED_NUMBERS + start_rgb;
-            led_strip_hsv2rgb(hue, 100, 1, &red, &green, &blue);
-            led_strip_pixels[j * 3 + 0] = green;
-            led_strip_pixels[j * 3 + 1] = blue;
-            led_strip_pixels[j * 3 + 2] = red;
-        }
-        // Flush RGB values to LEDs
-        ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, sizeof(led_strip_pixels), config));
-        vTaskDelay(pdMS_TO_TICKS(speed_ms));
-        memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
-        //ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, sizeof(led_strip_pixels), config));
-        //vTaskDelay(pdMS_TO_TICKS(EXAMPLE_CHASE_SPEED_MS));
-        start_rgb += 1;
-    }
-}
-
-void glow(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rmt_transmit_config_t *config){
-    // Each LED is it's own thing with it's own lifespan and hue
-    // When an LED is "born", it derives its hue from the hue-meister
-    // When an LED "dies", it is immediately reborn
-    // LEDs can also have a "trajectory" that describes how fast and in what direction the hue can change over its lifetime
-    uint32_t red = 0;
-    uint32_t green = 0;
-    uint32_t blue = 0;
-    uint16_t hue = 0;
-    uint16_t start_rgb = 0;
-    //uint16_t speed_ms = 7;
-    while (1) {
-        for (int j = 0; j < EXAMPLE_LED_NUMBERS; j += 1) {
-            // Build RGB pixels
-            hue = j * 360 / EXAMPLE_LED_NUMBERS + start_rgb;
-            led_strip_hsv2rgb(hue, 100, 100, &red, &green, &blue);
-            led_strip_pixels[j * 3 + 0] = green;
-            led_strip_pixels[j * 3 + 1] = blue;
-            led_strip_pixels[j * 3 + 2] = red;
-        }
-        // Flush RGB values to LEDs
-        ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, sizeof(led_strip_pixels), config));
-        
-        memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
-        //ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, sizeof(led_strip_pixels), config));
-        //vTaskDelay(pdMS_TO_TICKS(EXAMPLE_CHASE_SPEED_MS));
-        start_rgb += 1;
-    }
-}
-
-void glow_as_one(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rmt_transmit_config_t *config){
-    McCoolLED led(0, 100, 0, 10, 0, 0);
-    uint32_t red = 0;
-    uint32_t green = 0;
-    uint32_t blue = 0;
-    uint16_t speed_ms = 100;
-    while (1) {
-        led_strip_hsv2rgb(led.hue, led.saturation, led.value, &red, &green, &blue);
-        for (int j = 0; j < EXAMPLE_LED_NUMBERS; j += 1) {
-            led_strip_pixels[j * 3 + 0] = green;
-            led_strip_pixels[j * 3 + 1] = blue;
-            led_strip_pixels[j * 3 + 2] = red;
-        }
-        // Flush RGB values to LEDs
-        ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, sizeof(led_strip_pixels), config));
-        vTaskDelay(pdMS_TO_TICKS(speed_ms));
-        memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
-        led.glow();
-        //std::cout << "led value: " << led.value << " ticks: " << led.tl_ticks << "/" << led.ttl_ticks << " is_alive: " << led.is_alive << std::endl;
-        if (led.is_alive == false){
-            led.tl_ticks = 0;
-            led.is_alive = true;
-            led.hue = led.hue + 20;
-            led.value = 0;
-        }
-    }
-}
-
 void glow_random(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rmt_transmit_config_t *config){
     //uint16_t speed_ms = 100;
     McCoolLEDClump clump(channel, encoder, config, 35);
@@ -183,6 +72,10 @@ void pattern_loop(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rm
                 clump.rainbow_chase();
                 vTaskDelay(pdMS_TO_TICKS(0)); // 0 for no delay, still needed to reschedule
                 break;
+            case 2:
+                clump.glow_as_one(35, 10, 100);
+                vTaskDelay(pdMS_TO_TICKS(100)); // 0 for no delay, still needed to reschedule
+                break;
         }
         
     }
@@ -204,7 +97,7 @@ static void gpio_task(void* arg)
         if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
             if (gpio_get_level((gpio_num_t)io_num) == 1){
                 loop_state += 1;
-                if (loop_state > 1){
+                if (loop_state > 2){
                     loop_state = 0;
                 }
             }

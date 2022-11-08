@@ -109,6 +109,9 @@ class McCoolLED {
         // 180 yellowgreen
         // 240 red
         // 300 Purple
+
+        // Pattern
+        int pattern_position = 0;
         
 
 
@@ -250,6 +253,7 @@ class McCoolLEDClump {
             if (leds.size() == 0){
                 position = rand() % 35;
                 leds.emplace_back(0, 100, 0, 10, 0, position);
+                leds[0].hue = leds[0].christmas[rand() % leds[0].christmas.size()].hue;
             }else if (leds.size() < concurrent_leds){
                 if (rand() % 2 == 1){
                     position = rand() % 35;
@@ -301,5 +305,38 @@ class McCoolLEDClump {
             // Flush RGB values to LEDs
             ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, 105, config));
             leds[0].hue += 1;
+        }
+
+        void glow_as_one(int concurrent_leds, int max_value, int max_ttl){
+            uint32_t red = 0;
+            uint32_t green = 0;
+            uint32_t blue = 0;
+
+            if (leds.size() == 0){
+                leds.emplace_back(0, 100, 0, 10, 0, 0);
+                leds[0].hue = leds[0].christmas[rand() % leds[0].christmas.size()].hue;
+            }
+
+
+            led_strip_hsv2rgb(leds[0].hue, leds[0].saturation, leds[0].value, &red, &green, &blue);
+            for (int j = 0; j < num_pixels; j += 1) {
+                led_strip_pixels[j * 3 + 0] = green;
+                led_strip_pixels[j * 3 + 1] = blue;
+                led_strip_pixels[j * 3 + 2] = red;
+            }
+
+            // Flush RGB values to LEDs
+            ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, 105, config));
+            leds[0].glow();
+            if (leds[0].is_alive == false){
+                leds[0].tl_ticks = 0;
+                leds[0].is_alive = true;
+                leds[0].pattern_position += 1;
+                if (leds[0].pattern_position >= leds[0].christmas.size()){
+                    leds[0].pattern_position = 0;
+                }
+                leds[0].hue = leds[0].christmas[leds[0].pattern_position].hue;
+                leds[0].value = 0;
+            }
         }
 };
