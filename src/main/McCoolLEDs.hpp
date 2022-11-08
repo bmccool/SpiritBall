@@ -254,6 +254,7 @@ class McCoolLEDClump {
                 if (rand() % 2 == 1){
                     position = rand() % 35;
                     if (position_is_empty(position)){
+                        // TODO color should be a class member, not an instance member.  Shouldn't need to access via 0, hen we wouldn't need the elseif
                         color = leds[0].christmas[rand() % leds[0].christmas.size()];
                         leds.emplace_back(color.hue, color.saturation, 0, 10, 0, position); // TODO check if it exists first
                     }
@@ -276,10 +277,29 @@ class McCoolLEDClump {
                     leds.erase(leds.begin() + i); // TODO won't this arrange the array while I'm working on it?  Find a better way to to do this.
                 }
             }
-
-
-
-
         }
         
+        void rainbow_chase(void){
+            uint32_t red = 0;
+            uint32_t green = 0;
+            uint32_t blue = 0;
+            uint16_t hue = 0;
+            uint16_t speed_ms = 7;
+
+            if (leds.size() == 0){
+                leds.emplace_back(0, 100, 0, 10, 0, 0);
+            }
+
+            for (int j = 0; j < num_pixels; j += 1) {
+                // Build RGB pixels
+                hue = j * 360 / num_pixels + leds[0].hue;
+                led_strip_hsv2rgb(hue, 100, 1, &red, &green, &blue);
+                led_strip_pixels[j * 3 + 0] = green;
+                led_strip_pixels[j * 3 + 1] = blue;
+                led_strip_pixels[j * 3 + 2] = red;
+            }
+            // Flush RGB values to LEDs
+            ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, 105, config));
+            leds[0].hue += 1;
+        }
 };
