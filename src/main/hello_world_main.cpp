@@ -31,6 +31,7 @@
 #define EXAMPLE_LED_NUMBERS         35
 #define EXAMPLE_CHASE_SPEED_MS      10
 #define ESP_INTR_FLAG_DEFAULT       0
+#define NUM_PATTERNS                3
 static const char *TAG = "example";
 
 #include "esp_check.h"
@@ -64,7 +65,7 @@ void pattern_loop(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rm
     //int pattern = 1;
     while (1) {
         switch(loop_state){
-            case 0:
+            case 3:
                 clump.glow_random_2(10, 10, 100);
                 vTaskDelay(pdMS_TO_TICKS(100)); // 0 for no delay, still needed to reschedule
                 break;
@@ -75,6 +76,10 @@ void pattern_loop(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rm
             case 2:
                 clump.glow_as_one(35, 10, 100);
                 vTaskDelay(pdMS_TO_TICKS(100)); // 0 for no delay, still needed to reschedule
+                break;
+            case 0:
+                clump.chase(1, 3);
+                vTaskDelay(pdMS_TO_TICKS(40)); // 0 for no delay, still needed to reschedule
                 break;
         }
         
@@ -97,7 +102,7 @@ static void gpio_task(void* arg)
         if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
             if (gpio_get_level((gpio_num_t)io_num) == 1){
                 loop_state += 1;
-                if (loop_state > 2){
+                if (loop_state > NUM_PATTERNS){
                     loop_state = 0;
                 }
             }

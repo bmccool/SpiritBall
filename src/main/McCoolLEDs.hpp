@@ -95,8 +95,8 @@ class McCoolLED {
         uint32_t green = 0;
         uint32_t blue = 0;
 
-        uint16_t ttl_ticks;
-        uint16_t tl_ticks;
+        uint16_t ttl_ticks; // Time To Live
+        uint16_t tl_ticks;  // Time Lived
         int16_t hue_trajectory;
         bool is_alive;
 
@@ -136,6 +136,15 @@ class McCoolLED {
             }
             return(true);
         }
+
+        bool chase(){
+            if(is_alive == false){ return(false); }
+            tl_ticks += 1;
+            if(tl_ticks >= ttl_ticks){
+                is_alive = false;
+            }
+            return(true);
+        }
 };
 
 class McCoolLEDClump {
@@ -157,6 +166,13 @@ class McCoolLEDClump {
         std::vector<McCoolLED> leds;
 
         McCoolLEDClump(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rmt_transmit_config_t *config, int num_leds): channel(channel), encoder(encoder), config(config), num_pixels(num_leds){ led_strip_pixels = new uint8_t[num_leds * 3]; }
+
+        void clear_pixels(){
+            // Delete all pixels
+            for (int i = 0; i < leds.size(); i++){
+                leds.erase(leds.begin());
+            }
+        }
 
         void clear_strip(){
             // Dumb for now, just get it done
@@ -338,5 +354,52 @@ class McCoolLEDClump {
                 leds[0].hue = leds[0].christmas[leds[0].pattern_position].hue;
                 leds[0].value = 0;
             }
+        }
+
+        void chase(int on, int off){
+            // Chase 3 on 1 off
+            int tl = 0;
+            int ttl = off;
+            int value = 0;
+            if (leds.size() == 0){
+                for (int i = 0; i < num_pixels; i++){
+                    if ((value == 0) && (tl >= off)){
+                        value = 1;
+                        tl = 0;
+                        ttl = on;
+                    }
+                    if ((value == 1) && (tl >= on)){
+                        value = 0;
+                        tl = 0;
+                        ttl = off;
+                    }
+                    leds.emplace_back(0, 0, value, ttl, 0, i);
+                    leds[i].tl_ticks = tl;
+                    tl += 1;
+
+                }
+            }
+            for (int i = 0; i < num_pixels; i++){
+                leds[i].chase();
+                if (leds[i].is_alive == false){
+                    leds[i].tl_ticks = 0;
+                    leds[i].is_alive = true;
+                    if (leds[i].value == 0){
+                        leds[i].value = 1;
+                        leds[i].ttl_ticks = on;
+                        leds[i].hue = 0;
+                        leds[i].saturation = 0;
+                    } else {
+                        leds[i].value = 0;
+                        leds[i].ttl_ticks = off;
+                        leds[i].hue = 0;
+                        leds[i].saturation = 0;
+                    }
+                }
+            }
+
+            clear_strip();
+            load_strip();
+            ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, 105, config));
         }
 };
