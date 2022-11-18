@@ -16,6 +16,7 @@
 #define PURPLE {300, 100, 0}     // 300 Purple
 
 
+
 /**
  * @brief Simple helper function, converting HSV color space to RGB color space
  *
@@ -68,6 +69,54 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, uint32_t
     }
 }
 
+void rgb2hsv(uint32_t r, uint32_t g, uint32_t b, uint16_t *h, uint16_t *s, uint16_t *v)
+{
+    float r_prime = r/255;
+    float g_prime = g/255;
+    float b_prime = b/255;
+
+    float cmax = r_prime;
+    float cmin = r_prime;
+    float delta;
+    if (g_prime > cmax){
+        cmax = g_prime;
+    }
+    if (g_prime < cmin){
+        cmin = g_prime;
+    }
+    if (b_prime > cmax){
+        cmax = b_prime;
+    }
+    if (b_prime < cmin){
+        cmin = b_prime;
+    }
+    delta = cmax - cmin;
+    if (delta == 0){
+        *h = 0;
+    }
+    else if (cmax == r_prime){
+        *h = 60 * (int((g_prime - b_prime) / delta) % 6);
+    }
+    else if (cmax == g_prime){
+        *h = 60 * (((b_prime - r_prime) / delta) + 2);
+    }
+    else { // cmax == b_prime
+        *h = 60 * (((r_prime - g_prime) / delta) + 4);
+    }
+
+    if (cmax == 0){
+        *s = 0;
+    }
+    else {
+        *s = delta / cmax;
+    }
+
+    *v = cmax;
+    // TODO my hue is shifted by a bit...
+    *h = (*h - 60) % 360;
+}
+
+
 struct ColorHSV
 {
     uint16_t hue;
@@ -82,6 +131,7 @@ struct ColorRGB
     uint16_t blue;
 };
 
+static const std::vector<ColorHSV> christmas = {RED, GREEN};
 
 class McCoolLED {
     private:
@@ -102,7 +152,7 @@ class McCoolLED {
 
         uint16_t position;
         // xyz?
-        std::vector<ColorHSV> christmas = {RED, GREEN};
+        //std::vector<ColorHSV> christmas = {RED, GREEN};
         // 360/0 Blue
         // 60 Cyan
         // 120
@@ -145,6 +195,71 @@ class McCoolLED {
             }
             return(true);
         }
+
+        bool naive_transition(void){
+            // Just go to the next color in the pattern
+            // Only worry about hue and saturation for now, leave value at whatever it is already set at.
+
+            //uint32_t targetr;
+            //uint32_t targetg;
+            //uint32_t targetb;
+
+            int target;
+            float percent_complete;
+
+            target = pattern_position + 1;
+            if (target >= christmas.size()){
+                target = 0;
+            }
+            //std::cout << "Target is " << target << ".  ";
+
+            //std::cout << "Difference: " << (christmas[target].hue - hue + 360) % 360 << ".  ";
+            if (((christmas[target].hue - hue + 360) % 360) < 180){
+                // Move in positive hue direction
+                //std::cout << "Moving in the positive direction.  ";
+                if (hue == 360) { hue = 0; }
+                hue += 1;
+                if (hue > christmas[target].hue) { hue = christmas[target].hue; }
+            } else {
+                // Move in negative hue direction
+                //std::cout << "Moving in the negative direction.  ";
+                if (hue == 0) { hue = 360; }
+                hue -= 1;
+                if (hue < christmas[target].hue) { hue = christmas[target].hue; }
+            }
+
+            //std::cout << "Hue: " << hue << std::endl;
+            percent_complete = 100 * (float)abs(christmas[pattern_position].hue - hue) / abs(christmas[pattern_position].hue - christmas[target].hue);
+            //std::cout << "Percent Complete: " << percent_complete << std::endl;
+            //value = (percent_complete / 100 * 10);
+            value = 10 * ((percent_complete - 50) * (percent_complete - 50)) / 2500;
+            if (hue == christmas[target].hue){ return true; }
+            return false;
+
+            /*
+            led_strip_hsv2rgb(christmas[target].hue, christmas[target].saturation, christmas[target].value, &targetr, &targetg, &targetb);
+            led_strip_hsv2rgb(hue, saturation, value, &red, &green, &blue);
+            if (red > targetr){
+                red -= 1;
+            } else if (red < targetr){
+                red += 1;
+            }
+            if (green > targetg){
+                green -= 1;
+            } else if (green < targetg){
+                green += 1;
+            }
+            if (blue > targetb){
+                blue -= 1;
+            } else if (blue < targetb){
+                blue += 1;
+            }
+            rgb2hsv(red, green, blue, &hue, &saturation, &value);
+            if ((red == targetr) && (green == targetg) && (blue == targetb)){
+                return true;
+            } else { return false; }
+            */
+        }
 };
 
 class McCoolLEDClump {
@@ -170,6 +285,13 @@ class McCoolLEDClump {
         void clear_pixels(){
             // Delete all pixels
             for (int i = 0; i < leds.size(); i++){
+                leds.erase(leds.begin());
+            }
+        }
+
+        void reset(){
+            // Remove all LEDs from this clump
+            for (int i = leds.size(); i > 0; i--){
                 leds.erase(leds.begin());
             }
         }
@@ -269,13 +391,13 @@ class McCoolLEDClump {
             if (leds.size() == 0){
                 position = rand() % 35;
                 leds.emplace_back(0, 100, 0, 10, 0, position);
-                leds[0].hue = leds[0].christmas[rand() % leds[0].christmas.size()].hue;
+                leds[0].hue = christmas[rand() % christmas.size()].hue;
             }else if (leds.size() < concurrent_leds){
                 if (rand() % 2 == 1){
                     position = rand() % 35;
                     if (position_is_empty(position)){
                         // TODO color should be a class member, not an instance member.  Shouldn't need to access via 0, hen we wouldn't need the elseif
-                        color = leds[0].christmas[rand() % leds[0].christmas.size()];
+                        color = christmas[rand() % christmas.size()];
                         leds.emplace_back(color.hue, color.saturation, 0, 10, 0, position); // TODO check if it exists first
                     }
                     
@@ -330,7 +452,7 @@ class McCoolLEDClump {
 
             if (leds.size() == 0){
                 leds.emplace_back(0, 100, 0, 10, 0, 0);
-                leds[0].hue = leds[0].christmas[rand() % leds[0].christmas.size()].hue;
+                leds[0].hue = christmas[rand() % christmas.size()].hue;
             }
 
 
@@ -348,11 +470,46 @@ class McCoolLEDClump {
                 leds[0].tl_ticks = 0;
                 leds[0].is_alive = true;
                 leds[0].pattern_position += 1;
-                if (leds[0].pattern_position >= leds[0].christmas.size()){
+                if (leds[0].pattern_position >= christmas.size()){
                     leds[0].pattern_position = 0;
                 }
-                leds[0].hue = leds[0].christmas[leds[0].pattern_position].hue;
+                leds[0].hue = christmas[leds[0].pattern_position].hue;
                 leds[0].value = 0;
+            }
+        }
+
+        void glow_tranistion_naive(std::vector<ColorHSV> color_pallette){
+            uint32_t red = 0;
+            uint32_t green = 0;
+            uint32_t blue = 0;
+            //int next_position;
+
+            if (leds.size() == 0){
+                leds.emplace_back(0, 100, 2, 10, 0, 0);
+                leds[0].hue = christmas[leds[0].pattern_position].hue;
+            }
+
+            led_strip_hsv2rgb(leds[0].hue, leds[0].saturation, leds[0].value, &red, &green, &blue);
+            for (int j = 0; j < num_pixels; j += 1) {
+                led_strip_pixels[j * 3 + 0] = green;
+                led_strip_pixels[j * 3 + 1] = blue;
+                led_strip_pixels[j * 3 + 2] = red;
+            }
+
+            // Flush RGB values to LEDs
+            ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, 105, config));
+
+            if (leds[0].naive_transition()) {
+            //if (leds[0].is_alive == false){
+                //leds[0].tl_ticks = 0;
+                //leds[0].is_alive = true;
+                // TODO should this logic be inside the led transition method?
+                leds[0].pattern_position += 1;
+                if (leds[0].pattern_position >= christmas.size()){
+                    leds[0].pattern_position = 0;
+                }
+                //leds[0].hue = christmas[leds[0].pattern_position].hue;
+                //leds[0].value = 0;
             }
         }
 
@@ -389,6 +546,64 @@ class McCoolLEDClump {
                         leds[i].ttl_ticks = on;
                         leds[i].hue = 0;
                         leds[i].saturation = 0;
+                    } else {
+                        leds[i].value = 0;
+                        leds[i].ttl_ticks = off;
+                        leds[i].hue = 0;
+                        leds[i].saturation = 0;
+                    }
+                }
+            }
+
+            clear_strip();
+            load_strip();
+            ESP_ERROR_CHECK(rmt_transmit(channel, encoder, led_strip_pixels, 105, config));
+        }
+
+        void chase_colorized(int on, int off, std::vector<ColorHSV> color_pallette){
+            // Chase 3 on 1 off
+            int tl = 0;
+            int ttl = off;
+            int value = 0;
+            int color_index = 0;
+            // This looping structure is shakey and prone to errors, tidy it up
+            if (leds.size() == 0){
+                for (int i = 0; i < num_pixels; i++){
+                    if ((value == 0) && (tl >= off)){ // Refactor tl to ticks_lived or time_lived, and off to off_ticks or off_time
+                        value = 1;
+                        tl = 0;
+                        ttl = on;
+                        color_index += 1;
+                        if (color_index >= color_pallette.size()){
+                            color_index = 0;
+                        }
+                    }
+                    if ((value == 1) && (tl >= on)){
+                        value = 0;
+                        tl = 0;
+                        ttl = off;
+                    }
+                    leds.emplace_back(color_pallette[color_index].hue, color_pallette[color_index].saturation, value, ttl, 0, i);
+                    leds[i].tl_ticks = tl;
+                    leds[i].pattern_position = color_index;
+                    tl += 1;
+
+                }
+            }
+            for (int i = 0; i < num_pixels; i++){
+                leds[i].chase();
+                if (leds[i].is_alive == false){
+                    leds[i].tl_ticks = 0;
+                    leds[i].is_alive = true;
+                    if (leds[i].value == 0){
+                        leds[i].value = 1;
+                        leds[i].pattern_position += 1;
+                        if (leds[i].pattern_position >= color_pallette.size()){
+                            leds[i].pattern_position = 0;
+                        }
+                        leds[i].ttl_ticks = on;
+                        leds[i].hue = color_pallette[leds[i].pattern_position].hue;
+                        leds[i].saturation = color_pallette[leds[i].pattern_position].saturation;
                     } else {
                         leds[i].value = 0;
                         leds[i].ttl_ticks = off;

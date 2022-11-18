@@ -31,7 +31,7 @@
 #define EXAMPLE_LED_NUMBERS         35
 #define EXAMPLE_CHASE_SPEED_MS      10
 #define ESP_INTR_FLAG_DEFAULT       0
-#define NUM_PATTERNS                3
+#define NUM_PATTERNS                5
 static const char *TAG = "example";
 
 #include "esp_check.h"
@@ -77,9 +77,25 @@ void pattern_loop(rmt_channel_handle_t channel, rmt_encoder_t *encoder, const rm
                 clump.glow_as_one(35, 10, 100);
                 vTaskDelay(pdMS_TO_TICKS(100)); // 0 for no delay, still needed to reschedule
                 break;
-            case 0:
+            case 5:
                 clump.chase(1, 3);
                 vTaskDelay(pdMS_TO_TICKS(40)); // 0 for no delay, still needed to reschedule
+                break;
+            case 4:
+                clump.chase_colorized(2, 4, christmas);
+                vTaskDelay(pdMS_TO_TICKS(40)); // 0 for no delay, still needed to reschedule
+                break;
+            case 0:
+                clump.glow_tranistion_naive(christmas);
+                vTaskDelay(pdMS_TO_TICKS(10)); // 0 for no delay, still needed to reschedule
+                break;
+            default:
+                if (loop_state >= 100){
+                    std::cout << "Resetting Loop" << std::endl;
+                    clump.reset();
+                    loop_state -= 100;
+                }
+                if (loop_state < 0){ loop_state = 0; }
                 break;
         }
         
@@ -104,6 +120,10 @@ static void gpio_task(void* arg)
                 loop_state += 1;
                 if (loop_state > NUM_PATTERNS){
                     loop_state = 0;
+                }
+                // 100 signifies need to reset TODO make this a state machine please!
+                if (loop_state < 100){
+                    loop_state += 100;
                 }
             }
             std::cout << "GPIO[" << io_num << "] interrupt, value: " << gpio_get_level((gpio_num_t)io_num) << ",  loop_state = " << loop_state << std::endl;
