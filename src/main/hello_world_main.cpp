@@ -24,7 +24,7 @@
 
 
 #define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us (led strip needs a high resolution)
-#define RMT_LED_STRIP_GPIO_NUM      21
+#define RMT_LED_STRIP_GPIO_NUM      (gpio_num_t)21
 #define GPIO_INPUT_BUTTON_SW2       (gpio_num_t)17
 #define GPIO_INPUT_PIN_SEL  ((1ULL<<GPIO_INPUT_BUTTON_SW2))
 
